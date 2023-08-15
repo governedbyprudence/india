@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:india/core/routes/singlePerson.dart';
 
 class HomePage extends StatefulWidget {
   static const routeName = "/home";
@@ -9,7 +10,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   final List<Map<String,String>> _timelineList = const [
     {"year": "1857", "description": "Indian Rebellion of 1857 against British East India Company rule."},
     {"year": "1885", "description": "Formation of the Indian National Congress (INC), a major political party advocating for India's rights."},
@@ -32,7 +33,8 @@ class _HomePageState extends State<HomePage> {
     {"year": "2019", "description": "Government revokes the special status of Jammu and Kashmir."},
     {"year": "2020", "description": "COVID-19 pandemic impacts India's public health and economy."},
   ];
-
+  final List<Map<String,String>> _animatedTimelineList = [];
+  late TabController _tabController;
   List<Map<String, String>> _peopleData = [
     {
       "imageUrl":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Subhas_Chandra_Bose_NRB.jpg/800px-Subhas_Chandra_Bose_NRB.jpg",
@@ -163,113 +165,162 @@ class _HomePageState extends State<HomePage> {
       'imageURL': 'https://example.com/sam_manekshaw.jpg'
     },
   ];
+  List<Map<String, String>> _animatedPeopleData = [];
+  final GlobalKey<AnimatedListState> _peopleListKey = GlobalKey<AnimatedListState>();
+  final GlobalKey<AnimatedListState> _timelineListKey = GlobalKey<AnimatedListState>();
 
   @override
+  void initState() {
+    super.initState();
+    _loadTimelineList();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if(!_tabController.indexIsChanging) {
+       if(_tabController.index==1){
+         _animatedTimelineList.clear();
+         _loadPeopleList();
+       }
+       else{
+         _animatedPeopleData.clear();
+         _loadTimelineList();
+
+       }
+      }
+    });
+  }
+  Future<void> _loadPeopleList()async {
+    Future.delayed(Duration(seconds: 1),(){});
+    for (var i in _peopleData){
+      await Future.delayed(Duration(milliseconds: 200),(){});
+      _animatedPeopleData.add(i);
+      _peopleListKey.currentState!.insertItem(_animatedPeopleData.length-1,duration: Duration(milliseconds: 200));
+    }
+  }
+  Future<void> _loadTimelineList()async {
+    Future.delayed(Duration(seconds: 1),(){});
+    for (var i in _timelineList){
+      await Future.delayed(Duration(milliseconds: 200),(){});
+      _animatedTimelineList.add(i);
+      _timelineListKey.currentState!.insertItem(_animatedTimelineList.length-1,duration: Duration(milliseconds: 200));
+    }
+  }
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: Colors.grey[200],
-        appBar:AppBar(
-          elevation: 0,
-          backgroundColor: Colors.white,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(40),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                    child: Container(
-                      margin: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    )),
-                TabBar(
-                  indicatorColor: Colors.white,
-                  padding: const EdgeInsets.all(20),
-                  indicator: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        offset: const Offset(0,1),
-                        blurRadius: 3,
-                        spreadRadius: 2,
-                        color: Colors.grey[300]!
-                      )
-                    ],
-                    border: Border.all(width: 0.5,color: Colors.deepOrange)
-                  ),
-                  tabs: const [
-                    Tab(
-                      child: Icon(Icons.timeline),
-                    ),Tab(
-                      child: Icon(Icons.person),
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar:AppBar(
+        centerTitle: true,
+        title: Image.asset("assets/flag.webp",fit: BoxFit.fitHeight,width: 30,height: 20,),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                  child: Container(
+                    margin: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                  )),
+              TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                padding: const EdgeInsets.all(20),
+                indicator: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      offset: const Offset(0,1),
+                      blurRadius: 3,
+                      spreadRadius: 2,
+                      color: Colors.grey[300]!
+                    )
                   ],
+                  border: Border.all(width: 0.5,color: Colors.deepOrange)
                 ),
-              ],
-            ),
+                tabs: const [
+                  Tab(
+
+                    child: Icon(Icons.timeline),
+                  ),Tab(
+                    child: Icon(Icons.person),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _timeline(),
-            _people()
-          ],
-        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _timeline(),
+          _people(),
+        ],
       ),
     );
   }
-  Widget _peopleTile(Map data,int index){
-    return GestureDetector(
-      onTap: (){
-        Navigator.push(context, MaterialPageRoute(builder: (context)=>PersonViewPage()))
-      },
-      child: Container(
-        height: 100,
-        margin: EdgeInsets.all(20),
-        padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow:[
-              BoxShadow(
-                offset: Offset(0,1),
-                blurRadius: 2,
-                spreadRadius: 1,
-                color: Colors.grey[300]!,
-              )
-            ],
-            borderRadius: BorderRadius.circular(10)
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(flex:2,
-                child: Hero(
-                  tag: data["name"],
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: CachedNetworkImageProvider(
-                            data["imageUrl"]??"",
-
-                        ),
-                        fit: BoxFit.fitWidth
-                      )
-                    ),
-                  ),
+  Widget _peopleTile(context,animation,Map data,int index){
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(-1, 0),
+        end: Offset(0, 0),
+      ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.bounceIn,
+          reverseCurve: Curves.bounceOut)),
+      child: GestureDetector(
+        onTap: (){
+          Navigator.push(context, MaterialPageRoute(builder: (context)=>PersonViewPage(data: data,)));
+        },
+        child: Container(
+          height: 100,
+          margin: EdgeInsets.all(20),
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow:[
+                BoxShadow(
+                  offset: Offset(0,1),
+                  blurRadius: 2,
+                  spreadRadius: 1,
+                  color: Colors.grey[300]!,
                 )
-            ),
-            Expanded(flex: 6,child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(data["name"],style: TextStyle(fontWeight: FontWeight.w600,fontSize: 15),),
               ],
-            )),
-          ],
+              borderRadius: BorderRadius.circular(10)
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(flex:2,
+                  child: Hero(
+                    tag: data["name"],
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: DecorationImage(
+                          image: CachedNetworkImageProvider(
+                              data["imageUrl"]??"",
+
+                          ),
+                          fit: BoxFit.fitWidth
+                        )
+                      ),
+                    ),
+                  )
+              ),
+              Expanded(flex: 6,child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(data["name"],style: TextStyle(fontWeight: FontWeight.w600,fontSize: 15),),
+                ],
+              )),
+            ],
+          ),
         ),
       ),
     );
@@ -289,95 +340,117 @@ class _HomePageState extends State<HomePage> {
           ],
           borderRadius: BorderRadius.only(topRight: Radius.circular(15),topLeft: Radius.circular(15))
       ),
-      child: ListView.builder(
-          itemCount: _peopleData.length,
-          itemBuilder: (context,index)=>_peopleTile(_peopleData[index],index)),
-    );
-  }
-  Widget _leftTile(Map data,int index){
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 10),
-      height: 190,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const SizedBox(width: 20,),
-              CircleAvatar(backgroundColor: Colors.orange,child: Text("${index + 1}",style: TextStyle(color: Colors.white),),),
-              const SizedBox(width: 20,),
-              Text(data["year"],style: TextStyle(fontWeight: FontWeight.bold),),
-              const SizedBox(width: 20,),
-              Expanded(child: Divider(color: Colors.deepOrange,)),
-              const SizedBox(width: 20,),
-            ],
-          ),
-          Expanded(flex: 6,child: Container(
-            decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow:[
-                  BoxShadow(
-                    offset: Offset(0,1),
-                    blurRadius: 1,
-                    spreadRadius: 1,
-                    color: Colors.grey[300]!,
-                  )
-                ],
-                borderRadius: BorderRadius.circular(10)
-            ),
-            margin: EdgeInsets.all(20),
-            padding: EdgeInsets.only(left: 20,right: 60,top: 10,bottom: 10),
-            alignment: Alignment.centerLeft,
-            child: Text(data["description"],style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500),),
-          )),
-          Expanded(child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Divider(color: Colors.green[900],),
-          )),
-        ],
+      child: AnimatedList(
+        key: _peopleListKey,
+        itemBuilder: (BuildContext context, int index, Animation<double> animation) {
+        return _peopleTile(context,animation,_animatedPeopleData[index], index);
+      },
+
       ),
     );
   }
-  Widget _rightTile(Map data,int index){
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 10),
-      height: 190,
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const SizedBox(width: 20,),
-              Expanded(child: Divider(color: Colors.green[900],)),
-              const SizedBox(width: 20,),
-              Text(data["year"],style: TextStyle(fontWeight: FontWeight.bold),),
-              const SizedBox(width: 20,),
-              CircleAvatar(backgroundColor: Colors.green,child: Text("${index + 1}",style: TextStyle(color: Colors.white),),),
-              const SizedBox(width: 20,),
-            ],
-          ),
-          Expanded(flex: 6,child: Container(
-            decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow:[
-                  BoxShadow(
-                    offset: Offset(0,1),
-                    blurRadius: 1,
-                    spreadRadius: 1,
-                    color: Colors.grey[300]!,
-                  )
-                ],
-                borderRadius: BorderRadius.circular(10)
+  Widget _leftTile(context,animation,Map data,int index){
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: Offset(-1,0),
+        end: Offset(0,0),
+      ).animate(CurvedAnimation(
+        parent: animation,
+        curve: Curves.bounceIn,
+        reverseCurve: Curves.bounceOut)),
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 10),
+        height: 190,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 20,),
+                CircleAvatar(backgroundColor: Colors.orange,child: Text("${index + 1}",style: TextStyle(color: Colors.white),),),
+                const SizedBox(width: 20,),
+                Text(data["year"],style: TextStyle(fontWeight: FontWeight.bold),),
+                const SizedBox(width: 20,),
+                Expanded(child: Divider(color: Colors.deepOrange,)),
+                const SizedBox(width: 20,),
+              ],
             ),
-            margin: EdgeInsets.all(20),
-            padding: EdgeInsets.only(left: 20,right: 60,top: 10,bottom: 10),
-            alignment: Alignment.centerRight,
-            child: Text(data["description"],style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500),),
-          )),
-          Expanded(child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Divider(color: Colors.deepOrange),
-          )),
-        ],
+            Expanded(flex: 6,child: Container(
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow:[
+                    BoxShadow(
+                      offset: Offset(0,1),
+                      blurRadius: 1,
+                      spreadRadius: 1,
+                      color: Colors.grey[300]!,
+                    )
+                  ],
+                  borderRadius: BorderRadius.circular(10)
+              ),
+              margin: EdgeInsets.all(20),
+              padding: EdgeInsets.only(left: 20,right: 60,top: 10,bottom: 10),
+              alignment: Alignment.centerLeft,
+              child: Text(data["description"],style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500),),
+            )),
+            Expanded(child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Divider(color: Colors.green[900],),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _rightTile(context,animation,Map data,int index){
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: Offset(1,0),
+        end: Offset(0,0),
+      ).animate(CurvedAnimation(
+      parent: animation,
+      curve: Curves.bounceIn,
+      reverseCurve: Curves.bounceOut)),
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 10),
+        height: 190,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 20,),
+                Expanded(child: Divider(color: Colors.green[900],)),
+                const SizedBox(width: 20,),
+                Text(data["year"],style: TextStyle(fontWeight: FontWeight.bold),),
+                const SizedBox(width: 20,),
+                CircleAvatar(backgroundColor: Colors.green,child: Text("${index + 1}",style: TextStyle(color: Colors.white),),),
+                const SizedBox(width: 20,),
+              ],
+            ),
+            Expanded(flex: 6,child: Container(
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow:[
+                    BoxShadow(
+                      offset: Offset(0,1),
+                      blurRadius: 1,
+                      spreadRadius: 1,
+                      color: Colors.grey[300]!,
+                    )
+                  ],
+                  borderRadius: BorderRadius.circular(10)
+              ),
+              margin: EdgeInsets.all(20),
+              padding: EdgeInsets.only(left: 20,right: 60,top: 10,bottom: 10),
+              alignment: Alignment.centerRight,
+              child: Text(data["description"],style: TextStyle(fontSize: 15,fontWeight: FontWeight.w500),),
+            )),
+            Expanded(child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Divider(color: Colors.deepOrange),
+            )),
+          ],
+        ),
       ),
     );
   }
@@ -396,16 +469,17 @@ class _HomePageState extends State<HomePage> {
         ],
         borderRadius: BorderRadius.only(topRight: Radius.circular(15),topLeft: Radius.circular(15))
       ),
-      child: ListView.builder(
-          itemCount: _timelineList.length,
-          itemBuilder: (context,index){
-            if(index%2==0){
-              return _leftTile(_timelineList[index],index);
-            }
-            else{
-              return _rightTile(_timelineList[index],index);
-            }
-          }),
+      child: AnimatedList(
+        key: _timelineListKey,
+        itemBuilder: (context,index,animation){
+          if(index%2==0){
+            return _leftTile(context, animation, _animatedTimelineList[index], index);
+          }
+          else{
+            return _rightTile(context, animation, _animatedTimelineList[index], index);
+          }
+        },
+      )
     );
   }
 }
